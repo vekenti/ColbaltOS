@@ -1,0 +1,45 @@
+#!/bin/bash
+# Compile kernel
+
+OS="ColbaltOS"
+
+Dir="compile"
+
+TARGET="i686-elf"
+
+KERNEL="kernel"
+START="start"
+LINKER="linker.ld"
+
+GRUB_BOOT="compile/ISO/boot"
+
+
+
+case $1 in
+    -c | --clean )
+        rm -f $OS.iso $GRUB_BOOT/$OS.elf $Dir/$KERNEL.o $Dir/$START.o
+    ;;
+    -s | --starter )
+        rm -f $START.o
+        clang -target $TARGET -c $START.s -o $Dir/$$START.o
+    ;;
+    -k | --kernel )
+        rm -f $KERNEL.o
+        clang -target $TARGET -ffreestanding -std=gnu99 -c $KERNEL.c -o $Dir/$$KERNEL.o
+    ;;
+    -e | --elf )
+        rm -f $GRUB_BOOT/$OS.elf $KERNEL.o $START.o
+        clang -target $TARGET -c $START.s -o $START.o
+        clang -target $TARGET -ffreestanding -nostdlib -g -T $LINKER $Dir/$$START.o $Dir/$$KERNEL.o -o $Dir/$$OS.elf
+    ;;
+    -i | --iso )
+        rm -f $OS.iso $GRUB_BOOT/$OS.elf $Dir/$KERNEL.o $Dir/$START.o
+        clang -target $TARGET -c $START.s -o $Dir/$START.o
+        clang -target $TARGET -ffreestanding -std=gnu99 -c $KERNEL.c -o $Dir/$KERNEL.o
+        clang -target $TARGET -ffreestanding -nostdlib -g -T $LINKER $Dir/$START.o $Dir/$KERNEL.o -o $Dir/$OS.elf
+        cp $Dir/$OS.elf $GRUB_BOOT/$OS.elf
+        grub-mkrescue $Dir/ISO -o $OS.iso
+        qemu-system-i386 -cdrom ColbaltOS.iso
+
+    ;;
+esac
